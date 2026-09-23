@@ -1,163 +1,96 @@
-/* =========================================================
-   LEVEL 3 - HOSPITAL MANAGEMENT SYSTEM
-   SQL SERVER / SSMS
-   TABLES ONLY - NO DATA
-   ========================================================= */
 
-USE master;
-GO
+create database HospitalDB
 
-IF DB_ID('HospitalDB') IS NOT NULL
-BEGIN
-    ALTER DATABASE HospitalDB
-    SET SINGLE_USER
-    WITH ROLLBACK IMMEDIATE;
+use HospitalDB
 
-    DROP DATABASE HospitalDB;
-END;
-GO
 
-CREATE DATABASE HospitalDB;
-GO
+create table Patient
+(
+	patient_id int primary key,
+	personal_info nvarchar(255),
+	contact_info nvarchar(255),
+	DOB date,
+	blood_group nvarchar(10),
+	gender nvarchar(20)
+)
 
-USE HospitalDB;
-GO
 
-/* =========================================================
-   TABLES
-   ========================================================= */
+create table Department
+(
+	department_id int primary key,
+	name nvarchar(100),
+	head_doctor_id int
+)
 
-CREATE TABLE Patient (
-    patient_id INT PRIMARY KEY,
-    personal_info VARCHAR(255),
-    contact_info VARCHAR(255),
-    DOB DATE NOT NULL,
-    age INT NOT NULL CHECK (age >= 0),
-    blood_group VARCHAR(10),
-    gender VARCHAR(20)
-);
-GO
 
-CREATE TABLE Department (
-    department_id INT PRIMARY KEY,
-    name VARCHAR(120) NOT NULL,
-    head_doctor_id INT NULL UNIQUE
-);
-GO
+create table Doctor
+(
+	doctor_id int primary key,
+	specialization nvarchar(100),
+	professional_details nvarchar(255),
+	department_id int,
+	foreign key (department_id) references Department(department_id)
+)
 
-CREATE TABLE Doctor (
-    doctor_id INT PRIMARY KEY,
-    specialization VARCHAR(120),
-    professional_details VARCHAR(255),
-    department_id INT NOT NULL,
 
-    CONSTRAINT FK_Doctor_Department
-        FOREIGN KEY (department_id)
-        REFERENCES Department(department_id)
-);
-GO
+alter table Department
+add foreign key (head_doctor_id) references Doctor(doctor_id)
 
-ALTER TABLE Department
-ADD CONSTRAINT FK_Department_HeadDoctor
-FOREIGN KEY (head_doctor_id)
-REFERENCES Doctor(doctor_id);
-GO
 
-CREATE TABLE Service (
-    service_id INT PRIMARY KEY,
-    name VARCHAR(120) NOT NULL,
-    type VARCHAR(80),
-    price DECIMAL(10,2) NOT NULL CHECK (price >= 0),
-    department_id INT NOT NULL,
+create table Service
+(
+	service_id int primary key,
+	name nvarchar(100),
+	type nvarchar(80),
+	price decimal(10,2),
+	department_id int,
+	foreign key (department_id) references Department(department_id)
+)
 
-    CONSTRAINT FK_Service_Department
-        FOREIGN KEY (department_id)
-        REFERENCES Department(department_id)
-);
-GO
 
-CREATE TABLE Appointment (
-    appointment_id INT PRIMARY KEY,
-    patient_id INT NOT NULL,
-    doctor_id INT NOT NULL,
-    appointment_date DATE NOT NULL,
-    appointment_time TIME NOT NULL,
-    status VARCHAR(30) NOT NULL,
-    type VARCHAR(60),
+create table Appointment
+(
+	appointment_id int primary key,
+	patient_id int,
+	doctor_id int,
+	appointment_date date,
+	appointment_time time,
+	status nvarchar(30),
+	type nvarchar(60),
+	foreign key (patient_id) references Patient(patient_id),
+	foreign key (doctor_id) references Doctor(doctor_id)
+)
 
-    CONSTRAINT FK_Appointment_Patient
-        FOREIGN KEY (patient_id)
-        REFERENCES Patient(patient_id),
 
-    CONSTRAINT FK_Appointment_Doctor
-        FOREIGN KEY (doctor_id)
-        REFERENCES Doctor(doctor_id)
-);
-GO
+create table Medical_Record
+(
+	record_id int primary key,
+	patient_id int,
+	doctor_id int,
+	appointment_id int,
+	diagnosis nvarchar(500),
+	treatment nvarchar(500),
+	foreign key (patient_id) references Patient(patient_id),
+	foreign key (doctor_id) references Doctor(doctor_id),
+	foreign key (appointment_id) references Appointment(appointment_id)
+)
 
-CREATE TABLE Medical_Record (
-    record_id INT PRIMARY KEY,
-    patient_id INT NOT NULL,
-    doctor_id INT NOT NULL,
-    appointment_id INT NOT NULL UNIQUE,
-    diagnosis VARCHAR(500),
-    treatment VARCHAR(500),
 
-    CONSTRAINT FK_Record_Patient
-        FOREIGN KEY (patient_id)
-        REFERENCES Patient(patient_id),
+create table Billing
+(
+	bill_id int primary key,
+	appointment_id int,
+	payment_details nvarchar(255),
+	foreign key (appointment_id) references Appointment(appointment_id)
+)
 
-    CONSTRAINT FK_Record_Doctor
-        FOREIGN KEY (doctor_id)
-        REFERENCES Doctor(doctor_id),
 
-    CONSTRAINT FK_Record_Appointment
-        FOREIGN KEY (appointment_id)
-        REFERENCES Appointment(appointment_id)
-);
-GO
-
-CREATE TABLE Billing (
-    bill_id INT PRIMARY KEY,
-    appointment_id INT NOT NULL UNIQUE,
-
-    CONSTRAINT FK_Billing_Appointment
-        FOREIGN KEY (appointment_id)
-        REFERENCES Appointment(appointment_id)
-);
-GO
-
-CREATE TABLE Appointment_Service (
-    appointment_id INT NOT NULL,
-    service_id INT NOT NULL,
-    quantity INT NOT NULL CHECK (quantity > 0),
-    unit_price_applied DECIMAL(10,2) NOT NULL
-        CHECK (unit_price_applied >= 0),
-
-    CONSTRAINT PK_Appointment_Service
-        PRIMARY KEY (appointment_id, service_id),
-
-    CONSTRAINT FK_AppointmentService_Appointment
-        FOREIGN KEY (appointment_id)
-        REFERENCES Appointment(appointment_id),
-
-    CONSTRAINT FK_AppointmentService_Service
-        FOREIGN KEY (service_id)
-        REFERENCES Service(service_id)
-);
-GO
-
-CREATE TABLE Payment (
-    payment_id INT PRIMARY KEY,
-    bill_id INT NOT NULL,
-    amount DECIMAL(10,2) NOT NULL CHECK (amount > 0),
-    payment_details VARCHAR(255),
-
-    CONSTRAINT FK_Payment_Billing
-        FOREIGN KEY (bill_id)
-        REFERENCES Billing(bill_id)
-);
-GO
-
-PRINT 'HospitalDB tables created successfully.';
-GO
+create table Appointment_Service
+(
+	appointment_id int,
+	service_id int,
+	Quantity int,
+	foreign key (appointment_id) references Appointment(appointment_id),
+	foreign key (service_id) references Service(service_id),
+	primary key (appointment_id, service_id)
+)
